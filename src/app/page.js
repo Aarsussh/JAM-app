@@ -11,6 +11,7 @@ export default function Home() {
   const [name, setName] = useState("");
   const [timer, setTimer] = useState(60);
   const [flashBuzz, setFlashBuzz] = useState(null);
+  const [points, setPoints] = useState(4);
 
   useEffect(() => {
   let savedName = localStorage.getItem("jamName");
@@ -25,7 +26,8 @@ export default function Home() {
 
       if (!jamState?.players?.includes(playerName)) {
         await updateDoc(ref, {
-          players: arrayUnion(playerName)
+          players: arrayUnion(playerName),
+          [`scores.${playerName}`]: 0
         });
       }
     };
@@ -86,6 +88,19 @@ export default function Home() {
     await updateDoc(ref, {
       timer: newTime,
     });
+
+    const speaker = jamState.currentSpeaker;
+
+    if (speaker) {
+
+      const currentScore = jamState.scores?.[speaker] || 0;
+
+      await updateDoc(ref, {
+        [`scores.${speaker}`]: currentScore + 1
+      });
+
+    }
+
   }, 1000);
 
   return () => clearInterval(interval);
@@ -223,6 +238,39 @@ const buzz = async () => {
         }
       };
 
+      //correct score
+      const correctAnswer = async () => {
+
+        const speaker = jamState.currentSpeaker;
+        if (!speaker) return;
+
+        const ref = doc(db, "jamState", "current");
+        const currentScore = jamState.scores?.[speaker] || 0;
+
+        await updateDoc(ref, {
+          [`scores.${speaker}`]: currentScore + points
+        });
+
+      };
+
+      //incorrect score
+      const wrongAnswer = async () => {
+
+        const speaker = jamState.currentSpeaker;
+        if (!speaker) return;
+
+        const ref = doc(db, "jamState", "current");
+        const currentScore = jamState.scores?.[speaker] || 0;
+
+        await updateDoc(ref, {
+          [`scores.${speaker}`]: currentScore - points
+        });
+
+      };
+
+
+      const rankings = Object.entries(jamState.scores || {})
+      .sort((a, b) => b[1] - a[1]);
 
 
   return (
@@ -287,6 +335,24 @@ const buzz = async () => {
       </ul>
     </div>
 
+        {!jamState.isRunning && rankings.length > 0 && (
+
+        <div className="bg-gray-800 p-5 rounded">
+
+        <h2 className="text-xl mb-3">Leaderboard</h2>
+
+        {rankings.map(([player, score], i) => (
+          <div key={player}>
+            {i + 1}. {player} — {score}
+          </div>
+        ))}
+
+        </div>
+
+        )}
+
+
+
     {/* JAM MASTER CONTROLS */}
     {jamState.jamMaster === name && (
       <div className="bg-gray-800 shadow-lg p-5 rounded-xl flex flex-wrap gap-3 justify-center border border-gray-700">
@@ -324,6 +390,20 @@ const buzz = async () => {
           className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded"
         >
           Reset Round
+        </button>
+
+        <button
+          onClick={correctAnswer}
+          className="bg-green-600 px-4 py-2 rounded"
+          >
+          Correct +{points}
+          </button>
+
+          <button
+          onClick={wrongAnswer}
+          className="bg-red-600 px-4 py-2 rounded"
+          >
+          Wrong -{points}
         </button>
 
       </div>
