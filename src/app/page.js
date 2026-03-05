@@ -11,7 +11,8 @@ export default function Home() {
   const [name, setName] = useState("");
   const [timer, setTimer] = useState(60);
   const [flashBuzz, setFlashBuzz] = useState(null);
-  const [points, setPoints] = useState(4);
+  const [points, setPoints] = useState(5);
+  const [lastBuzzTime, setLastBuzzTime] = useState(null);
 
   useEffect(() => {
   let savedName = localStorage.getItem("jamName");
@@ -24,12 +25,10 @@ export default function Home() {
   const addPlayer = async (playerName) => {
   const ref = doc(db, "jamState", "current");
 
-      if (!jamState?.players?.includes(playerName)) {
-        await updateDoc(ref, {
-          players: arrayUnion(playerName),
-          [`scores.${playerName}`]: 0
-        });
-      }
+      await updateDoc(ref, {
+        players: arrayUnion(playerName),
+        [`scores.${playerName}`]: 0
+      });
     };
 
     
@@ -85,21 +84,16 @@ export default function Home() {
 
     const ref = doc(db, "jamState", "current");
 
-    await updateDoc(ref, {
-      timer: newTime,
-    });
+    const updateData = { timer: newTime };
 
     const speaker = jamState.currentSpeaker;
 
     if (speaker) {
-
       const currentScore = jamState.scores?.[speaker] || 0;
-
-      await updateDoc(ref, {
-        [`scores.${speaker}`]: currentScore + 1
-      });
-
+      updateData[`scores.${speaker}`] = currentScore + 1;
     }
+
+    await updateDoc(ref, updateData);
 
   }, 1000);
 
@@ -172,6 +166,11 @@ const stopTimer = async () => {
 
 const buzz = async () => {
       if (!name) return;
+
+      if (!jamState.isRunning) {
+      alert("Round not running");
+      return;
+}
 
       const ref = doc(db, "jamState", "current");
 
@@ -314,7 +313,7 @@ const buzz = async () => {
       <p className="text-gray-400 mb-2">Buzz Queue</p>
 
       <ol className="list-decimal ml-6 space-y-1">
-        {jamState.buzzQueue.map((b, i) => (
+        {jamState.buzzQueue?.map((b, i) => (
           <li key={i} className="text-lg">{b.name}</li>
         ))}
       </ol>
