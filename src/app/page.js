@@ -10,6 +10,7 @@ export default function Home() {
   const [jamState, setJamState] = useState(null);
   const [name, setName] = useState("");
   const [timer, setTimer] = useState(60);
+  const [flashBuzz, setFlashBuzz] = useState(null);
 
   useEffect(() => {
   let savedName = localStorage.getItem("jamName");
@@ -36,10 +37,29 @@ export default function Home() {
 
 
   const unsub = onSnapshot(doc(db, "jamState", "current"), (doc) => {
-    const data = doc.data();
-    setJamState(data);
-    setTimer(data.timer);
-  });
+
+      const data = doc.data();
+      setJamState(data);
+      setTimer(data.timer);
+
+      if (data?.buzzQueue?.length > 0) {
+
+        const latestBuzz = data.buzzQueue[data.buzzQueue.length - 1];
+
+        if (latestBuzz.time !== lastBuzzTime) {
+
+          setLastBuzzTime(latestBuzz.time);
+          setFlashBuzz(latestBuzz.name);
+
+          setTimeout(() => {
+            setFlashBuzz(null);
+          }, 1500);
+
+        }
+
+      }
+
+    });
 
   return () => unsub();
   }, []);
@@ -207,6 +227,13 @@ const buzz = async () => {
 
   return (
   <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-8 space-y-8">
+
+      {flashBuzz && (
+        <div className="fixed inset-0 bg-red-700 bg-opacity-90 flex items-center justify-center text-5xl font-bold text-white z-50">
+          {flashBuzz} BUZZED!
+        </div>
+      )}
+
 
     {/* TIMER */}
     <div className="text-center">
