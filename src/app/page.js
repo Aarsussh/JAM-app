@@ -116,7 +116,7 @@ useEffect(() => {
   if (jamState.buzzQueue.length === 0) return;
 
   const sorted = [...jamState.buzzQueue].sort(
-    (a, b) => a.time - b.time
+    (a, b) => a.time?.seconds - b.time?.seconds
   );
 
   const next = sorted[0];
@@ -214,7 +214,9 @@ const buzz = async () => {
           timer: 60,
           isRunning: false,
           buzzQueue: [],
-          currentSpeaker: ""
+          currentSpeaker: "",
+          players: [],
+          scores: {}
         });
       };
 
