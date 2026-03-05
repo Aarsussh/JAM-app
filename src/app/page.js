@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, arrayUnion } from "firebase/firestore";
-import { arrayRemove } from "firebase/firestore";
-
+import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "firebase/firestore";
 
 export default function Home() {
   const [jamState, setJamState] = useState(null);
@@ -47,9 +45,9 @@ export default function Home() {
 
         const latestBuzz = data.buzzQueue[data.buzzQueue.length - 1];
 
-        if (latestBuzz.time !== lastBuzzTime) {
+        if (latestBuzz.time?.seconds !== lastBuzzTime) {
 
-          setLastBuzzTime(latestBuzz.time);
+          setLastBuzzTime(latestBuzz.time?.seconds);
           setFlashBuzz(latestBuzz.name);
 
           setTimeout(() => {
@@ -185,7 +183,7 @@ const buzz = async () => {
 
       const buzzEntry = {
         name: name,
-        time: Date.now()
+        time: serverTimestamp()
       };
 
       await updateDoc(ref, {
@@ -303,7 +301,14 @@ const buzz = async () => {
     {/* BUZZ BUTTON */}
     <button
       onClick={buzz}
-      className="bg-red-600 hover:bg-red-700 text-white text-4xl font-bold px-20 py-10 rounded-full shadow-xl transition"
+      disabled={jamState.jamMaster === name || !jamState.isRunning}
+      
+      className={`text-white text-4xl font-bold px-20 py-10 rounded-full shadow-xl transition
+      ${
+        jamState.jamMaster === name || !jamState.isRunning
+          ? "bg-gray-600 cursor-not-allowed"
+          : "bg-red-600 hover:bg-red-700"
+      }`}
     >
       BUZZ
     </button>
