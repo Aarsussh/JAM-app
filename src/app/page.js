@@ -164,11 +164,20 @@ const stopTimer = async () => {
 
 const buzz = async () => {
       if (!name) return;
-
+      /*
       if (!jamState.isRunning) {
       alert("Round not running");
       return;
-}
+      
+    }*/
+
+      //log
+      console.log({
+      master: jamState.jamMaster === name,
+      timerZero: jamState.timer === 0,
+      speaker: jamState.currentSpeaker === name,
+      inQueue: jamState.buzzQueue?.some(b => b.name === name)
+    });
 
       const ref = doc(db, "jamState", "current");
 
@@ -233,7 +242,7 @@ const buzz = async () => {
           isRunning: false,
           buzzQueue: [],
           currentSpeaker: "",
-          players: [],
+          //players: [],
           scores: {}
         });
       };
