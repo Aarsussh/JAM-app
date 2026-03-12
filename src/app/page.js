@@ -45,9 +45,9 @@ export default function Home() {
 
         const latestBuzz = data.buzzQueue[data.buzzQueue.length - 1];
 
-        if (latestBuzz.time?.seconds !== lastBuzzTime) {
+        if (latestBuzz.time !== lastBuzzTime) {
 
-          setLastBuzzTime(latestBuzz.time?.seconds);
+          setLastBuzzTime(latestBuzz.time);
           setFlashBuzz(latestBuzz.name);
 
           setTimeout(() => {
@@ -116,7 +116,7 @@ useEffect(() => {
   if (jamState.buzzQueue.length === 0) return;
 
   const sorted = [...jamState.buzzQueue].sort(
-    (a, b) => a.time?.seconds - b.time?.seconds
+    (a, b) => a.time - b.time
   );
 
   const next = sorted[0];
@@ -192,7 +192,7 @@ const buzz = async () => {
 
       const buzzEntry = {
         name: name,
-        time: serverTimestamp()
+        time: Date.now()
       };
 
       await updateDoc(ref, {
