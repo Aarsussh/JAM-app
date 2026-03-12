@@ -64,7 +64,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-  if (!jamState?.isRunning) return;
+  if (!jamState?.isRunning || jamState.jamMaster !== name) return;
 
   const interval = setInterval(async () => {
     if (timer <= 0) {
@@ -181,7 +181,7 @@ const buzz = async () => {
 
       const ref = doc(db, "jamState", "current");
 
-      const alreadyBuzzed = jamState.buzzQueue.some(
+      const alreadyBuzzed = (jamState.buzzQueue || []).some(
         (b) => b.name === name
       );
 
@@ -315,6 +315,12 @@ const buzz = async () => {
         });
       };
 
+      
+    const buzzDisabled =
+      jamState.jamMaster === name ||
+      jamState.timer === 0 ||
+      jamState.buzzQueue?.some(b => b.name === name);
+
   return (
   <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-8 space-y-8">
 
@@ -344,17 +350,13 @@ const buzz = async () => {
     </div>
 
     {/* BUZZ BUTTON */}
+
     <button
       onClick={buzz}
-      disabled={
-        jamState.jamMaster === name ||
-        jamState.timer === 0 ||
-        jamState.buzzQueue?.some(b => b.name === name)
-      }
-            
+      disabled={buzzDisabled}
       className={`text-white text-4xl font-bold px-20 py-10 rounded-full shadow-xl transition
       ${
-        jamState.jamMaster === name || !jamState.isRunning
+        buzzDisabled
           ? "bg-gray-600 cursor-not-allowed"
           : "bg-red-600 hover:bg-red-700"
       }`}
