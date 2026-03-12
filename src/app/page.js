@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, serverTimestamp, runTransaction } from "firebase/firestore";
 
 export default function Home() {
   const [jamState, setJamState] = useState(null);
@@ -193,17 +193,35 @@ const buzz = async () => {
     };
 
     const becomeMaster = async () => {
-        if (jamState.jamMaster && jamState.jamMaster !== "") {
-          alert("Jam Master already selected");
-          return;
-        }
 
-        const ref = doc(db, "jamState", "current");
+      const ref = doc(db, "jamState", "current");
 
-        await updateDoc(ref, {
-          jamMaster: name
+      try {
+        await runTransaction(db, async (transaction) => {
+
+          const docSnap = await transaction.get(ref);
+
+          if (!docSnap.exists()) {
+            throw "Document does not exist!";
+          }
+
+          const data = docSnap.data();
+
+          if (data.jamMaster && data.jamMaster !== "") {
+            throw "Jam master already selected";
+          }
+
+          transaction.update(ref, {
+            jamMaster: name
+          });
+
         });
-      };
+
+      } catch (e) {
+        alert("Jam master already selected");
+      }
+
+    };
 
 
       const resetTimer = async () => {
@@ -272,6 +290,22 @@ const buzz = async () => {
       .sort((a, b) => b[1] - a[1]);
 
 
+
+      const hardReset = async () => {
+        const ref = doc(db, "jamState", "current");
+
+        await updateDoc(ref, {
+          timer: 60,
+          isRunning: false,
+          buzzQueue: [],
+          players: [],
+          jamMaster: "",
+          currentSpeaker: "",
+          scores: {},
+          lastSeen: {}
+        });
+      };
+
   return (
   <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-8 space-y-8">
 
@@ -303,8 +337,12 @@ const buzz = async () => {
     {/* BUZZ BUTTON */}
     <button
       onClick={buzz}
-      disabled={jamState.jamMaster === name || !jamState.isRunning}
-      
+      disabled={
+        jamState.jamMaster === name ||
+        jamState.timer === 0 ||
+        jamState.buzzQueue?.some(b => b.name === name)
+      }
+            
       className={`text-white text-4xl font-bold px-20 py-10 rounded-full shadow-xl transition
       ${
         jamState.jamMaster === name || !jamState.isRunning
@@ -359,6 +397,17 @@ const buzz = async () => {
 
 
 
+    {!jamState.jamMaster && (
+    <button
+      onClick={becomeMaster}
+      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
+    >
+      Become Jam Master
+    </button>
+  )}
+
+
+
     {/* JAM MASTER CONTROLS */}
     {jamState.jamMaster === name && (
       <div className="bg-gray-800 shadow-lg p-5 rounded-xl flex flex-wrap gap-3 justify-center border border-gray-700">
@@ -410,6 +459,13 @@ const buzz = async () => {
           className="bg-red-600 px-4 py-2 rounded"
           >
           Wrong -{points}
+        </button>
+
+        <button
+          onClick={hardReset}
+          className="bg-red-800 hover:bg-red-900 px-4 py-2 rounded"
+        >
+          Hard Reset
         </button>
 
       </div>
